@@ -1,3 +1,5 @@
+<img width="580" height="247" alt="Scherm­afbeelding 2026-04-14 om 16 34 52" src="https://github.com/user-attachments/assets/94597824-dc9f-4fd8-b8fc-5cc11b1f7edf" />
+
 # Research Lab Manager
 
 A desktop application for research lab leaders to manage their team, track PhD student progress, organize research projects, and keep meeting notes — all in one place. Your data is stored locally on your machine.
