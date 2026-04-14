@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 import Layout from '@/components/Layout.vue'
 import Dashboard from '@/pages/Dashboard.vue'
 import Team from '@/pages/Team.vue'
@@ -8,7 +8,7 @@ import MeetingNotes from '@/pages/MeetingNotes.vue'
 import Settings from '@/pages/Settings.vue'
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHashHistory(),
   routes: [
     {
       path: '/',
