@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RouterLink, useRoute } from 'vue-router'
-import { LayoutDashboard, Users, GraduationCap, FolderKanban, FileText, Settings } from 'lucide-vue-next'
+import { LayoutDashboard, Users, GraduationCap, FolderKanban, FileText, ClipboardList, Settings } from 'lucide-vue-next'
 import type { Component } from 'vue'
 import AppLogo from './AppLogo.vue'
 
@@ -12,6 +12,7 @@ const navItems: { to: string; icon: Component; label: string }[] = [
   { to: '/phd-progress', icon: GraduationCap, label: 'PhD Progress' },
   { to: '/projects', icon: FolderKanban, label: 'Projects' },
   { to: '/meetings', icon: FileText, label: 'Meeting Notes' },
+  { to: '/kanban', icon: ClipboardList, label: 'Kanban' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ]
 

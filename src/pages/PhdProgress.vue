@@ -160,7 +160,7 @@ function barColor(status: string) {
     </div>
 
     <!-- Timeline View -->
-    <div v-if="timelineData && phdStore.trackers.length > 0" class="bg-card rounded-2xl p-8 mb-8 shadow-sm">
+    <div v-if="timelineData && phdStore.trackers.length > 0" class="bg-card rounded-2xl p-8 mb-10 shadow-sm">
       <h2 class="text-lg font-semibold text-text mb-8">Timeline Overview</h2>
       <div class="relative">
         <div class="flex items-center gap-5 mb-3">
@@ -187,18 +187,19 @@ function barColor(status: string) {
           class="absolute top-0 bottom-0 w-px bg-danger z-10"
           :style="{ left: `calc(13.25rem + (100% - 13.25rem) * ${timelineData.todayPos / 100})` }"
         >
-          <div class="absolute -top-5 -translate-x-1/2 text-[10px] text-danger font-medium bg-card px-1.5 rounded">Today</div>
+          <div class="absolute -top-5 -translate-x-1/2 text-[10px] text-danger font-medium bg-card px-2.5 py-0.5 rounded">Today</div>
         </div>
       </div>
     </div>
 
     <!-- Detail Cards -->
-    <div class="space-y-8">
+    <div class="space-y-10">
       <div v-for="tracker in phdStore.trackers" :key="tracker.id" class="bg-card rounded-2xl overflow-hidden shadow-sm">
         <div class="flex items-center justify-between px-8 py-6 cursor-pointer hover:bg-hover/50 transition-colors" @click="expandedId = expandedId === tracker.id ? null : tracker.id">
           <div class="flex items-center gap-5">
-            <div class="w-11 h-11 rounded-full bg-hover flex items-center justify-center text-sm font-medium text-text-secondary">
-              {{ tracker.member_name.split(' ').map((n: string) => n[0]).join('') }}
+            <div class="w-11 h-11 rounded-full bg-hover flex items-center justify-center text-sm font-medium text-text-secondary overflow-hidden shrink-0">
+              <img v-if="tracker.member_photo" :src="tracker.member_photo" class="w-full h-full object-cover" />
+              <template v-else>{{ tracker.member_name.split(' ').map((n: string) => n[0]).join('') }}</template>
             </div>
             <div>
               <h3 class="font-semibold text-text">{{ tracker.member_name }}</h3>
@@ -232,7 +233,7 @@ function barColor(status: string) {
                     <div class="flex items-center gap-3">
                       <span class="text-xs text-text-muted font-medium w-6">{{ idx + 1 }}.</span>
                       <input type="text" v-model="chapterForm.title" placeholder="Chapter title..." class="flex-1 border border-border rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue/30 bg-bg" />
-                      <select v-model="chapterForm.status" class="border border-border rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue/30 bg-bg">
+                      <select v-model="chapterForm.status" class="border border-border rounded-xl px-4 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue/30 bg-bg">
                         <option value="not_started">Not Started</option>
                         <option value="in_progress">In Progress</option>
                         <option value="finished">Finished</option>
@@ -242,8 +243,8 @@ function barColor(status: string) {
                       <input type="text" v-model="chapterForm.reference" placeholder="APA reference (e.g., Author, A. (2024). Title. Journal, 1(2), 1-10.)" class="w-full border border-border rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue/30 bg-bg" />
                     </div>
                     <div class="ml-9 flex items-center gap-2">
-                      <button @click="saveEditChapter(tracker)" class="px-4 py-2 bg-blue text-white text-xs rounded-lg hover:bg-blue-dark transition-colors">Save</button>
-                      <button @click="cancelEditChapter" class="px-4 py-2 text-xs text-text-secondary border border-border rounded-lg hover:bg-hover transition-colors">Cancel</button>
+                      <button @click="saveEditChapter(tracker)" class="px-5 py-2 bg-blue text-white text-xs rounded-lg hover:bg-blue-dark transition-colors">Save</button>
+                      <button @click="cancelEditChapter" class="px-5 py-2 text-xs text-text-secondary border border-border rounded-lg hover:bg-hover transition-colors">Cancel</button>
                     </div>
                   </div>
                 </template>
@@ -253,7 +254,7 @@ function barColor(status: string) {
                     <div class="flex-1 min-w-0">
                       <div class="flex items-center gap-2 mb-1">
                         <span class="text-sm font-medium text-text">{{ ch.title }}</span>
-                        <span :class="['text-[10px] px-2.5 py-1 rounded-md font-medium', chapterStatusStyles[ch.status]]">{{ chapterStatusLabels[ch.status] }}</span>
+                        <span :class="['text-[10px] px-3 py-1.5 rounded-md font-medium', chapterStatusStyles[ch.status]]">{{ chapterStatusLabels[ch.status] }}</span>
                       </div>
                       <p v-if="ch.reference" class="text-xs text-text-secondary italic leading-relaxed">{{ ch.reference }}</p>
                     </div>
@@ -268,14 +269,14 @@ function barColor(status: string) {
             <div v-if="editingChapterId === null" class="mt-6 pt-5 border-t border-border space-y-3">
               <div class="flex items-center gap-3">
                 <input type="text" v-model="chapterForm.title" placeholder="Chapter title..." class="flex-1 border border-border rounded-xl px-5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue/30 bg-bg" />
-                <select v-model="chapterForm.status" class="border border-border rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue/30 bg-bg">
+                <select v-model="chapterForm.status" class="border border-border rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue/30 bg-bg">
                   <option value="not_started">Not Started</option>
                   <option value="in_progress">In Progress</option>
                   <option value="finished">Finished</option>
                 </select>
               </div>
               <input type="text" v-model="chapterForm.reference" placeholder="APA reference..." class="w-full border border-border rounded-xl px-5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue/30 bg-bg" />
-              <button @click="addChapter(tracker)" class="px-4 py-2.5 bg-blue text-white text-sm rounded-xl hover:bg-blue-dark transition-colors">Add Chapter</button>
+              <button @click="addChapter(tracker)" class="px-5 py-2.5 bg-blue text-white text-sm rounded-xl hover:bg-blue-dark transition-colors">Add Chapter</button>
             </div>
           </div>
         </div>

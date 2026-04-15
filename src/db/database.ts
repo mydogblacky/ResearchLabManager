@@ -154,4 +154,17 @@ async function runMigrations(database: Database): Promise<void> {
       FOREIGN KEY (team_member_id) REFERENCES team_members(id) ON DELETE CASCADE
     )
   `)
+
+  await database.execute(`
+    CREATE TABLE IF NOT EXISTS kanban_tasks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      column_name TEXT NOT NULL DEFAULT 'todo',
+      position INTEGER NOT NULL DEFAULT 0,
+      color TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `)
 }

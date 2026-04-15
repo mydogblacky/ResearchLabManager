@@ -35,7 +35,7 @@ const statusLabels: Record<string, string> = {
   <span :class="[
     'inline-flex items-center rounded-md font-medium',
     statusStyles[props.status] || statusStyles.pending,
-    props.size === 'sm' ? 'text-[11px] px-3 py-1' : 'text-xs px-3.5 py-1.5',
+    props.size === 'sm' ? 'text-[11px] px-3.5 py-1.5' : 'text-xs px-4 py-2',
   ]">
     {{ statusLabels[props.status] || props.status }}
   </span>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { Plus, Mail, Calendar, Edit2, Trash2, UserCheck, UserX, Users, Network } from 'lucide-vue-next'
+import { Plus, Mail, Calendar, Edit2, Trash2, UserCheck, UserX, Users, Network, Camera } from 'lucide-vue-next'
 import { format } from 'date-fns'
 import { useTeamStore } from '@/stores/teamStore'
 import type { TeamMember } from '@/types'
@@ -18,6 +18,7 @@ const form = ref({ ...emptyForm })
 const reportsTo = ref<number | null>(null)
 const showInactive = ref(false)
 const deleteConfirm = ref<number | null>(null)
+const photoInput = ref<HTMLInputElement | null>(null)
 
 onMounted(() => {
   teamStore.loadMembers()
@@ -36,6 +37,36 @@ const availableParents = computed(() => {
     return true
   })
 })
+
+function resizeImage(dataUrl: string, maxSize: number): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      let { width, height } = img
+      if (width > height) {
+        if (width > maxSize) { height = (height * maxSize) / width; width = maxSize }
+      } else {
+        if (height > maxSize) { width = (width * maxSize) / height; height = maxSize }
+      }
+      canvas.width = width
+      canvas.height = height
+      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+      resolve(canvas.toDataURL('image/jpeg', 0.85))
+    }
+    img.src = dataUrl
+  })
+}
+
+function handlePhotoUpload(event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = async (e) => {
+    form.value.photo = await resizeImage(e.target?.result as string, 256)
+  }
+  reader.readAsDataURL(file)
+}
 
 async function handleSubmit() {
   if (!form.value.name.trim()) return
@@ -88,6 +119,7 @@ function closeModal() {
   editingId.value = null
   form.value = { ...emptyForm }
   reportsTo.value = null
+  if (photoInput.value) photoInput.value.value = ''
 }
 </script>
 
@@ -100,7 +132,7 @@ function closeModal() {
         <p class="text-text-secondary mt-2">{{ filteredMembers.length }} members</p>
       </div>
       <div class="flex items-center gap-3">
-        <button v-if="currentTab === 'members'" @click="showInactive = !showInactive" class="flex items-center gap-2 px-4 py-2.5 text-sm text-text-secondary border border-border rounded-xl hover:bg-hover transition-colors">
+        <button v-if="currentTab === 'members'" @click="showInactive = !showInactive" class="flex items-center gap-2 px-5 py-2.5 text-sm text-text-secondary border border-border rounded-xl hover:bg-hover transition-colors">
           <UserX v-if="showInactive" :size="16" />
           <UserCheck v-else :size="16" />
           {{ showInactive ? 'Hide Inactive' : 'Show Inactive' }}
@@ -140,8 +172,9 @@ function closeModal() {
         >
           <div class="flex items-start justify-between mb-6">
             <div class="flex items-center gap-5">
-              <div class="w-12 h-12 rounded-full bg-hover flex items-center justify-center text-sm font-medium text-text-secondary">
-                {{ member.name.split(' ').map((n: string) => n[0]).join('') }}
+              <div class="w-12 h-12 rounded-full bg-hover flex items-center justify-center text-sm font-medium text-text-secondary overflow-hidden shrink-0">
+                <img v-if="member.photo" :src="member.photo" class="w-full h-full object-cover" />
+                <template v-else>{{ member.name.split(' ').map((n: string) => n[0]).join('') }}</template>
               </div>
               <div>
                 <h3 class="font-semibold text-text text-sm">{{ member.name }}</h3>
@@ -170,7 +203,7 @@ function closeModal() {
             </div>
           </div>
 
-          <div v-if="!member.is_active" class="mt-4 text-xs text-text-muted bg-hover rounded-lg px-4 py-1.5 inline-block">Inactive</div>
+          <div v-if="!member.is_active" class="mt-4 text-xs text-text-muted bg-hover rounded-lg px-4 py-2 inline-block">Inactive</div>
         </div>
       </div>
 
@@ -189,6 +222,19 @@ function closeModal() {
     <!-- Add/Edit Modal -->
     <Modal :open="showModal" @close="closeModal" :title="editingId ? 'Edit Team Member' : 'Add Team Member'">
       <form @submit.prevent="handleSubmit" class="space-y-5">
+        <div class="flex items-center gap-5">
+          <div class="w-20 h-20 rounded-full bg-hover flex items-center justify-center overflow-hidden shrink-0 border-2 border-dashed border-border">
+            <img v-if="form.photo" :src="form.photo" class="w-full h-full object-cover" />
+            <Camera v-else :size="24" class="text-text-muted" />
+          </div>
+          <div class="space-y-2">
+            <button type="button" @click="photoInput?.click()" class="px-5 py-2.5 text-sm text-text-secondary border border-border rounded-xl hover:bg-hover transition-colors">
+              {{ form.photo ? 'Change Photo' : 'Upload Photo' }}
+            </button>
+            <button v-if="form.photo" type="button" @click="form.photo = ''" class="block text-xs text-text-muted hover:text-danger transition-colors">Remove photo</button>
+            <input ref="photoInput" type="file" accept="image/*" @change="handlePhotoUpload" class="hidden" />
+          </div>
+        </div>
         <div>
           <label class="block text-sm font-medium text-text mb-2">Name *</label>
           <input type="text" v-model="form.name" class="w-full border border-border rounded-xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue/30 focus:border-blue bg-bg" placeholder="Full name" required />

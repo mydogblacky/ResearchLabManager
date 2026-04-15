@@ -118,7 +118,7 @@ watchEffect(() => {
             <Calendar :size="12" class="text-text-muted" />
             <span class="text-xs text-text-muted">{{ format(new Date(note.date), 'MMM d, yyyy') }}</span>
           </div>
-          <span v-if="note.project_name" class="inline-block mt-2.5 text-xs text-blue bg-blue/10 rounded-md px-3 py-1">{{ note.project_name }}</span>
+          <span v-if="note.project_name" class="inline-block mt-2.5 text-xs text-blue bg-blue/10 rounded-md px-3.5 py-1.5">{{ note.project_name }}</span>
           <div v-if="note.attendees.length > 0" class="flex items-center gap-1 mt-2.5">
             <div v-for="a in note.attendees.slice(0, 4)" :key="a.team_member_id" class="w-5 h-5 rounded-full bg-hover flex items-center justify-center text-[8px] font-medium text-text-secondary" :title="a.name">
               {{ a.name.split(' ').map((n: string) => n[0]).join('') }}
@@ -141,7 +141,7 @@ watchEffect(() => {
             <h2 class="text-base font-semibold text-text">{{ selectedNote.title }}</h2>
             <div class="flex items-center gap-3 mt-1">
               <span class="text-xs text-text-secondary">{{ format(new Date(selectedNote.date), 'EEEE, MMMM d, yyyy') }}</span>
-              <span v-if="selectedNote.project_name" class="text-xs text-blue bg-blue/10 rounded-md px-3 py-1">{{ selectedNote.project_name }}</span>
+              <span v-if="selectedNote.project_name" class="text-xs text-blue bg-blue/10 rounded-md px-3.5 py-1.5">{{ selectedNote.project_name }}</span>
             </div>
           </div>
           <button @click="deleteConfirm = selectedNote.id" class="p-2 rounded-lg hover:bg-danger/10 text-text-muted hover:text-danger transition-colors"><Trash2 :size="16" /></button>
@@ -155,11 +155,11 @@ watchEffect(() => {
               v-for="a in selectedNote.attendees"
               :key="a.team_member_id"
               @click="updateAttendees(selectedNote!, a.team_member_id)"
-              class="inline-flex items-center gap-1.5 bg-card border border-border rounded-full px-3.5 py-1.5 text-xs text-text hover:border-danger hover:text-danger transition-colors"
+              class="inline-flex items-center gap-1.5 bg-card border border-border rounded-full px-4 py-2 text-xs text-text hover:border-danger hover:text-danger transition-colors"
               :title="`Remove ${a.name}`"
             >{{ a.name }}</button>
             <div class="relative group">
-              <button class="inline-flex items-center gap-1 border border-dashed border-border rounded-full px-3.5 py-1.5 text-xs text-text-muted hover:border-blue hover:text-blue transition-colors">+ Add</button>
+              <button class="inline-flex items-center gap-1 border border-dashed border-border rounded-full px-4 py-2 text-xs text-text-muted hover:border-blue hover:text-blue transition-colors">+ Add</button>
               <div class="absolute top-full left-0 mt-1.5 bg-card border border-border rounded-xl shadow-lg py-2 hidden group-hover:block z-10 w-52">
                 <button
                   v-for="m in teamStore.members.filter(m => m.is_active && !selectedNote!.attendees.some(a => a.team_member_id === m.id))"
@@ -174,16 +174,16 @@ watchEffect(() => {
 
         <!-- TipTap Editor Toolbar -->
         <div v-if="editor" class="px-8 py-3 border-b border-border bg-card flex items-center gap-1.5">
-          <button @click="editor.chain().focus().toggleBold().run()" :class="['px-2.5 py-1 rounded text-sm', editor.isActive('bold') ? 'bg-hover font-bold' : 'hover:bg-hover']">B</button>
-          <button @click="editor.chain().focus().toggleItalic().run()" :class="['px-2.5 py-1 rounded text-sm italic', editor.isActive('italic') ? 'bg-hover' : 'hover:bg-hover']">I</button>
-          <button @click="editor.chain().focus().toggleStrike().run()" :class="['px-2.5 py-1 rounded text-sm line-through', editor.isActive('strike') ? 'bg-hover' : 'hover:bg-hover']">S</button>
+          <button @click="editor.chain().focus().toggleBold().run()" :class="['px-3 py-1.5 rounded text-sm', editor.isActive('bold') ? 'bg-hover font-bold' : 'hover:bg-hover']">B</button>
+          <button @click="editor.chain().focus().toggleItalic().run()" :class="['px-3 py-1.5 rounded text-sm italic', editor.isActive('italic') ? 'bg-hover' : 'hover:bg-hover']">I</button>
+          <button @click="editor.chain().focus().toggleStrike().run()" :class="['px-3 py-1.5 rounded text-sm line-through', editor.isActive('strike') ? 'bg-hover' : 'hover:bg-hover']">S</button>
           <div class="w-px h-5 bg-border mx-1" />
-          <button @click="editor.chain().focus().toggleHeading({ level: 2 }).run()" :class="['px-2.5 py-1 rounded text-sm', editor.isActive('heading', { level: 2 }) ? 'bg-hover font-bold' : 'hover:bg-hover']">H2</button>
-          <button @click="editor.chain().focus().toggleHeading({ level: 3 }).run()" :class="['px-2.5 py-1 rounded text-sm', editor.isActive('heading', { level: 3 }) ? 'bg-hover font-bold' : 'hover:bg-hover']">H3</button>
+          <button @click="editor.chain().focus().toggleHeading({ level: 2 }).run()" :class="['px-3 py-1.5 rounded text-sm', editor.isActive('heading', { level: 2 }) ? 'bg-hover font-bold' : 'hover:bg-hover']">H2</button>
+          <button @click="editor.chain().focus().toggleHeading({ level: 3 }).run()" :class="['px-3 py-1.5 rounded text-sm', editor.isActive('heading', { level: 3 }) ? 'bg-hover font-bold' : 'hover:bg-hover']">H3</button>
           <div class="w-px h-5 bg-border mx-1" />
-          <button @click="editor.chain().focus().toggleBulletList().run()" :class="['px-2.5 py-1 rounded text-sm', editor.isActive('bulletList') ? 'bg-hover' : 'hover:bg-hover']">List</button>
-          <button @click="editor.chain().focus().toggleOrderedList().run()" :class="['px-2.5 py-1 rounded text-sm', editor.isActive('orderedList') ? 'bg-hover' : 'hover:bg-hover']">1.</button>
-          <button @click="editor.chain().focus().toggleBlockquote().run()" :class="['px-2.5 py-1 rounded text-sm', editor.isActive('blockquote') ? 'bg-hover' : 'hover:bg-hover']">Quote</button>
+          <button @click="editor.chain().focus().toggleBulletList().run()" :class="['px-3 py-1.5 rounded text-sm', editor.isActive('bulletList') ? 'bg-hover' : 'hover:bg-hover']">List</button>
+          <button @click="editor.chain().focus().toggleOrderedList().run()" :class="['px-3 py-1.5 rounded text-sm', editor.isActive('orderedList') ? 'bg-hover' : 'hover:bg-hover']">1.</button>
+          <button @click="editor.chain().focus().toggleBlockquote().run()" :class="['px-3 py-1.5 rounded text-sm', editor.isActive('blockquote') ? 'bg-hover' : 'hover:bg-hover']">Quote</button>
         </div>
 
         <div class="flex-1 overflow-y-auto bg-card">
@@ -219,7 +219,7 @@ watchEffect(() => {
               :key="m.id"
               type="button"
               @click="toggleAttendee(m.id)"
-              :class="['px-3.5 py-1.5 rounded-full text-xs border transition-colors', selectedAttendees.includes(m.id) ? 'bg-blue text-white border-blue' : 'bg-bg text-text border-border hover:border-blue']"
+              :class="['px-4 py-2 rounded-full text-xs border transition-colors', selectedAttendees.includes(m.id) ? 'bg-blue text-white border-blue' : 'bg-bg text-text border-border hover:border-blue']"
             >{{ m.name }}</button>
           </div>
         </div>

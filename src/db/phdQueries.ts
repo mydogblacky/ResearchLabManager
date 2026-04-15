@@ -4,7 +4,7 @@ import type { PhdTracker, PhdTrackerWithMember } from '@/types';
 export async function getAllPhdTrackers(): Promise<PhdTrackerWithMember[]> {
   const db = await getDb();
   return await db.select<PhdTrackerWithMember[]>(`
-    SELECT p.*, t.name as member_name, t.role as member_role
+    SELECT p.*, t.name as member_name, t.role as member_role, t.photo as member_photo
     FROM phd_trackers p
     JOIN team_members t ON p.team_member_id = t.id
     ORDER BY p.phd_start_date

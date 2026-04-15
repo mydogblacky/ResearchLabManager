@@ -125,8 +125,8 @@ const activeMembers = computed(() => teamStore.members.filter(m => m.is_active))
               {{ format(new Date(project.start_date), 'MMM yyyy') }}{{ project.end_date ? ` - ${format(new Date(project.end_date), 'MMM yyyy')}` : '' }}
             </span>
             <div class="flex items-center gap-1">
-              <button @click.stop="handleEditProject(project)" class="p-1.5 rounded-md hover:bg-hover text-text-muted transition-colors"><Edit2 :size="14" /></button>
-              <button @click.stop="deleteConfirm = { type: 'project', id: project.id }" class="p-1.5 rounded-md hover:bg-danger/10 text-text-muted hover:text-danger transition-colors"><Trash2 :size="14" /></button>
+              <button @click.stop="handleEditProject(project)" class="p-2 rounded-lg hover:bg-hover text-text-muted transition-colors"><Edit2 :size="14" /></button>
+              <button @click.stop="deleteConfirm = { type: 'project', id: project.id }" class="p-2 rounded-lg hover:bg-danger/10 text-text-muted hover:text-danger transition-colors"><Trash2 :size="14" /></button>
               <ChevronUp v-if="expandedId === project.id" :size="16" class="text-text-muted" />
               <ChevronDown v-else :size="16" class="text-text-muted" />
             </div>
@@ -148,7 +148,7 @@ const activeMembers = computed(() => teamStore.members.filter(m => m.is_active))
                     <div class="w-8 h-8 rounded-full bg-hover flex items-center justify-center text-xs font-medium text-text-secondary">{{ pm.member_name.split(' ').map((n: string) => n[0]).join('') }}</div>
                     <span class="text-sm text-text">{{ pm.member_name }}</span>
                   </div>
-                  <button @click="handleRemoveMember(project.id, pm.team_member_id)" class="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-danger/10 text-text-muted hover:text-danger transition-all"><Trash2 :size="12" /></button>
+                  <button @click="handleRemoveMember(project.id, pm.team_member_id)" class="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-danger/10 text-text-muted hover:text-danger transition-all"><Trash2 :size="12" /></button>
                 </div>
               </div>
             </div>
@@ -169,8 +169,8 @@ const activeMembers = computed(() => teamStore.members.filter(m => m.is_active))
                     <p v-if="d.due_date" class="text-xs text-text-muted mt-0.5">{{ format(new Date(d.due_date), 'MMM d, yyyy') }}</p>
                   </div>
                   <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button @click="handleEditDeliverable(d)" class="p-1 rounded hover:bg-hover text-text-muted transition-colors"><Edit2 :size="12" /></button>
-                    <button @click="deleteConfirm = { type: 'deliverable', id: d.id }" class="p-1 rounded hover:bg-danger/10 text-text-muted hover:text-danger transition-colors"><Trash2 :size="12" /></button>
+                    <button @click="handleEditDeliverable(d)" class="p-1.5 rounded-lg hover:bg-hover text-text-muted transition-colors"><Edit2 :size="12" /></button>
+                    <button @click="deleteConfirm = { type: 'deliverable', id: d.id }" class="p-1.5 rounded-lg hover:bg-danger/10 text-text-muted hover:text-danger transition-colors"><Trash2 :size="12" /></button>
                   </div>
                 </div>
               </div>

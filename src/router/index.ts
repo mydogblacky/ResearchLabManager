@@ -5,6 +5,7 @@ import Team from '@/pages/Team.vue'
 import PhdProgress from '@/pages/PhdProgress.vue'
 import Projects from '@/pages/Projects.vue'
 import MeetingNotes from '@/pages/MeetingNotes.vue'
+import Kanban from '@/pages/Kanban.vue'
 import Settings from '@/pages/Settings.vue'
 
 const router = createRouter({
@@ -19,6 +20,7 @@ const router = createRouter({
         { path: 'phd-progress', component: PhdProgress },
         { path: 'projects', component: Projects },
         { path: 'meetings', component: MeetingNotes },
+        { path: 'kanban', component: Kanban },
         { path: 'settings', component: Settings },
       ],
     },

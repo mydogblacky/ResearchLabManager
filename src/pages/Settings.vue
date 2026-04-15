@@ -55,7 +55,7 @@ async function handleResetLocation() {
 async function handleExport() {
   try {
     const db = await getDb()
-    const tables = ['team_members', 'team_member_relationships', 'phd_trackers', 'projects', 'project_members', 'deliverables', 'meeting_notes', 'meeting_attendees']
+    const tables = ['team_members', 'team_member_relationships', 'phd_trackers', 'projects', 'project_members', 'deliverables', 'meeting_notes', 'meeting_attendees', 'kanban_tasks']
     const data: Record<string, unknown[]> = {}
     for (const table of tables) {
       data[table] = await db.select(`SELECT * FROM ${table}`)
@@ -87,9 +87,9 @@ function handleImport() {
       const text = await file.text()
       const data = JSON.parse(text)
       const db = await getDb()
-      const deleteTables = ['meeting_attendees', 'meeting_notes', 'deliverables', 'project_members', 'projects', 'phd_trackers', 'team_member_relationships', 'team_members']
+      const deleteTables = ['kanban_tasks', 'meeting_attendees', 'meeting_notes', 'deliverables', 'project_members', 'projects', 'phd_trackers', 'team_member_relationships', 'team_members']
       for (const table of deleteTables) { await db.execute(`DELETE FROM ${table}`) }
-      const insertOrder = ['team_members', 'team_member_relationships', 'phd_trackers', 'projects', 'project_members', 'deliverables', 'meeting_notes', 'meeting_attendees']
+      const insertOrder = ['team_members', 'team_member_relationships', 'phd_trackers', 'projects', 'project_members', 'deliverables', 'meeting_notes', 'meeting_attendees', 'kanban_tasks']
       for (const table of insertOrder) {
         const rows = data[table]
         if (!Array.isArray(rows)) continue
@@ -121,14 +121,14 @@ function handleImport() {
       <p class="text-text-secondary mt-2">Manage your data and preferences</p>
     </div>
 
-    <div class="max-w-2xl space-y-10">
+    <div class="max-w-2xl space-y-16">
       <!-- Database Location -->
-      <div class="bg-card rounded-2xl p-8 shadow-sm">
+      <div class="bg-card rounded-2xl p-10 shadow-sm">
         <div class="flex items-start gap-6">
           <div class="w-12 h-12 rounded-xl bg-purple/10 flex items-center justify-center shrink-0">
             <HardDrive :size="22" class="text-purple" />
           </div>
-          <div class="flex-1">
+          <div class="flex-1 min-w-0">
             <h2 class="text-lg font-semibold text-text">Database Location</h2>
             <p class="text-sm text-text-secondary mt-2 mb-4 leading-relaxed">
               Choose where your database is stored. Use a cloud-synced folder (like OneDrive) to access your data across computers.
@@ -137,11 +137,11 @@ function handleImport() {
               <AlertTriangle :size="14" />
               <span>Could not access custom location. Using default path instead.</span>
             </div>
-            <div class="bg-hover/60 rounded-xl px-5 py-3.5 mb-5">
+            <div class="bg-hover/60 rounded-xl px-5 py-3.5 mb-5 overflow-hidden">
               <p class="text-[11px] text-text-muted mb-1 uppercase tracking-wide">Current location</p>
               <p class="text-sm text-text font-mono truncate">{{ currentDbPath || 'Loading...' }}</p>
             </div>
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 flex-wrap">
               <button @click="handleChangeLocation" :disabled="changingLocation" class="flex items-center gap-2 px-5 py-2.5 bg-blue text-white text-sm font-medium rounded-xl hover:bg-blue-dark transition-colors disabled:opacity-50">
                 <FolderOpen :size="16" />
                 {{ changingLocation ? 'Moving...' : 'Change Location' }}
@@ -155,12 +155,12 @@ function handleImport() {
       </div>
 
       <!-- Export -->
-      <div class="bg-card rounded-2xl p-8 shadow-sm">
+      <div class="bg-card rounded-2xl p-10 shadow-sm">
         <div class="flex items-start gap-6">
           <div class="w-12 h-12 rounded-xl bg-blue/10 flex items-center justify-center shrink-0">
             <Download :size="22" class="text-blue" />
           </div>
-          <div class="flex-1">
+          <div class="flex-1 min-w-0">
             <h2 class="text-lg font-semibold text-text">Export Data</h2>
             <p class="text-sm text-text-secondary mt-2 mb-5 leading-relaxed">
               Download all your data as a JSON file. This includes team members, PhD trackers, projects, deliverables, and meeting notes.
@@ -175,12 +175,12 @@ function handleImport() {
       </div>
 
       <!-- Import -->
-      <div class="bg-card rounded-2xl p-8 shadow-sm">
+      <div class="bg-card rounded-2xl p-10 shadow-sm">
         <div class="flex items-start gap-6">
           <div class="w-12 h-12 rounded-xl bg-warning/10 flex items-center justify-center shrink-0">
             <Upload :size="22" class="text-warning" />
           </div>
-          <div class="flex-1">
+          <div class="flex-1 min-w-0">
             <h2 class="text-lg font-semibold text-text">Import Data</h2>
             <p class="text-sm text-text-secondary mt-2 mb-3 leading-relaxed">
               Restore data from a previously exported JSON backup. This will replace all current data.
@@ -200,7 +200,7 @@ function handleImport() {
       </div>
 
       <!-- About -->
-      <div class="bg-card rounded-2xl p-8 shadow-sm">
+      <div class="bg-card rounded-2xl p-10 shadow-sm">
         <h2 class="text-lg font-semibold text-text mb-3">About</h2>
         <div class="space-y-2 text-sm text-text-secondary leading-relaxed">
           <p><span class="font-medium text-text">Research Lab Manager</span> v0.1.0</p>

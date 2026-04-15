@@ -94,6 +94,7 @@ export interface OrgTreeNode {
 export interface PhdTrackerWithMember extends PhdTracker {
   member_name: string;
   member_role: string;
+  member_photo: string;
 }
 
 export interface ProjectWithMembers extends Project {
@@ -110,4 +111,17 @@ export interface DeliverableWithAssignee extends Deliverable {
 export interface MeetingNoteWithDetails extends MeetingNote {
   attendees: { team_member_id: number; name: string }[];
   project_name: string | null;
+}
+
+export type KanbanColumn = 'todo' | 'in_progress' | 'done';
+
+export interface KanbanTask {
+  id: number;
+  title: string;
+  description: string;
+  column: KanbanColumn;
+  position: number;
+  color: string;
+  created_at: string;
+  updated_at: string;
 }
