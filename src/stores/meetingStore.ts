@@ -29,5 +29,9 @@ export const useMeetingStore = defineStore('meeting', () => {
     notes.value = await meetingQueries.getAllMeetingNotes()
   }
 
-  return { notes, loading, loadNotes, addNote, updateNote, deleteNote }
+  async function getNotesByPhdTracker(phdTrackerId: number): Promise<MeetingNoteWithDetails[]> {
+    return await meetingQueries.getMeetingNotesByPhdTrackerId(phdTrackerId)
+  }
+
+  return { notes, loading, loadNotes, addNote, updateNote, deleteNote, getNotesByPhdTracker }
 })

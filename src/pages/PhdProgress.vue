@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { Plus, Edit2, Trash2, GraduationCap, ChevronDown, ChevronUp, BookOpen } from 'lucide-vue-next'
+import { ref, onMounted, computed, watch } from 'vue'
+import { Plus, Edit2, Trash2, GraduationCap, ChevronDown, ChevronUp, BookOpen, FileText, Calendar } from 'lucide-vue-next'
 import { format, differenceInMonths } from 'date-fns'
 import { useTeamStore } from '@/stores/teamStore'
 import { usePhdStore } from '@/stores/phdStore'
-import type { PhdTrackerWithMember, DissertationChapter } from '@/types'
+import { useMeetingStore } from '@/stores/meetingStore'
+import type { PhdTrackerWithMember, DissertationChapter, MeetingNoteWithDetails } from '@/types'
 import Modal from '@/components/Modal.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 
 const teamStore = useTeamStore()
 const phdStore = usePhdStore()
+const meetingStore = useMeetingStore()
 
 const emptyForm: { team_member_id: number; phd_start_date: string; expected_end_date: string; status: 'on_track' | 'at_risk' | 'overdue' | 'completed'; milestones: string; chapters: string; notes: string } = { team_member_id: 0, phd_start_date: '', expected_end_date: '', status: 'on_track', milestones: '[]', chapters: '[]', notes: '' }
 
@@ -21,8 +23,15 @@ const chapterForm = ref({ title: '', reference: '', status: 'not_started' as Dis
 const editingChapterId = ref<string | null>(null)
 const deleteConfirm = ref<number | null>(null)
 const today = new Date()
+const trackerMeetingNotes = ref<Record<number, MeetingNoteWithDetails[]>>({})
 
 onMounted(() => { teamStore.loadMembers(); phdStore.loadTrackers() })
+
+watch(expandedId, async (id) => {
+  if (id !== null && !trackerMeetingNotes.value[id]) {
+    trackerMeetingNotes.value[id] = await meetingStore.getNotesByPhdTracker(id)
+  }
+})
 
 async function handleSubmit() {
   if (!form.value.team_member_id || !form.value.phd_start_date || !form.value.expected_end_date) return
@@ -278,6 +287,32 @@ function barColor(status: string) {
               <input type="text" v-model="chapterForm.reference" placeholder="APA reference..." class="w-full border border-border rounded-xl px-5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue/30 bg-bg" />
               <button @click="addChapter(tracker)" class="px-5 py-2.5 bg-blue text-white text-sm rounded-xl hover:bg-blue-dark transition-colors">Add Chapter</button>
             </div>
+          </div>
+
+          <!-- Meeting Notes -->
+          <div class="mt-7">
+            <h4 class="text-sm font-semibold text-text mb-5 flex items-center gap-2"><FileText :size="14" /> Meeting Notes</h4>
+            <div v-if="(trackerMeetingNotes[tracker.id] ?? []).length > 0" class="space-y-3">
+              <router-link
+                v-for="note in trackerMeetingNotes[tracker.id]"
+                :key="note.id"
+                to="/meetings"
+                class="block bg-hover/50 rounded-xl px-6 py-4 hover:bg-hover transition-colors"
+              >
+                <div class="flex items-center justify-between">
+                  <p class="text-sm font-medium text-text">{{ note.title }}</p>
+                  <div class="flex items-center gap-1.5 text-text-muted">
+                    <Calendar :size="12" />
+                    <span class="text-xs">{{ format(new Date(note.date), 'MMM d, yyyy') }}</span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3 mt-2">
+                  <span v-if="note.project_name" class="text-xs text-blue bg-blue/10 rounded-md px-2.5 py-1">{{ note.project_name }}</span>
+                  <span v-if="note.attendees.length > 0" class="text-xs text-text-muted">{{ note.attendees.map(a => a.name).join(', ') }}</span>
+                </div>
+              </router-link>
+            </div>
+            <p v-else class="text-xs text-text-muted">No meeting notes linked to this PhD student. You can link notes from the Meeting Notes page.</p>
           </div>
         </div>
       </div>

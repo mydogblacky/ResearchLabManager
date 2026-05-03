@@ -8,21 +8,23 @@ import Placeholder from '@tiptap/extension-placeholder'
 import { useMeetingStore } from '@/stores/meetingStore'
 import { useTeamStore } from '@/stores/teamStore'
 import { useProjectStore } from '@/stores/projectStore'
+import { usePhdStore } from '@/stores/phdStore'
 import type { MeetingNoteWithDetails } from '@/types'
 import Modal from '@/components/Modal.vue'
 
 const meetingStore = useMeetingStore()
 const teamStore = useTeamStore()
 const projectStore = useProjectStore()
+const phdStore = usePhdStore()
 
 const selectedNote = ref<MeetingNoteWithDetails | null>(null)
 const showNewModal = ref(false)
-const newForm = ref({ title: '', date: format(new Date(), 'yyyy-MM-dd'), project_id: null as number | null })
+const newForm = ref({ title: '', date: format(new Date(), 'yyyy-MM-dd'), project_id: null as number | null, phd_tracker_id: null as number | null })
 const selectedAttendees = ref<number[]>([])
 const searchQuery = ref('')
 const deleteConfirm = ref<number | null>(null)
 
-onMounted(() => { meetingStore.loadNotes(); teamStore.loadMembers(); projectStore.loadProjects() })
+onMounted(() => { meetingStore.loadNotes(); teamStore.loadMembers(); projectStore.loadProjects(); phdStore.loadTrackers() })
 
 const editor = useEditor({
   extensions: [StarterKit, Placeholder.configure({ placeholder: 'Start writing meeting notes...' })],
@@ -48,11 +50,11 @@ watchEffect(() => {
 async function handleCreateNote() {
   if (!newForm.value.title.trim()) return
   const id = await meetingStore.addNote(
-    { title: newForm.value.title, date: newForm.value.date, content: '', project_id: newForm.value.project_id },
+    { title: newForm.value.title, date: newForm.value.date, content: '', project_id: newForm.value.project_id, phd_tracker_id: newForm.value.phd_tracker_id },
     selectedAttendees.value,
   )
   showNewModal.value = false
-  newForm.value = { title: '', date: format(new Date(), 'yyyy-MM-dd'), project_id: null }
+  newForm.value = { title: '', date: format(new Date(), 'yyyy-MM-dd'), project_id: null, phd_tracker_id: null }
   selectedAttendees.value = []
   const newNote = meetingStore.notes.find(n => n.id === id)
   if (newNote) selectNote(newNote)
@@ -118,7 +120,10 @@ watchEffect(() => {
             <Calendar :size="12" class="text-text-muted" />
             <span class="text-xs text-text-muted">{{ format(new Date(note.date), 'MMM d, yyyy') }}</span>
           </div>
-          <span v-if="note.project_name" class="inline-block mt-2.5 text-xs text-blue bg-blue/10 rounded-md px-3.5 py-1.5">{{ note.project_name }}</span>
+          <div class="flex flex-wrap gap-1.5 mt-2.5">
+            <span v-if="note.project_name" class="inline-block text-xs text-blue bg-blue/10 rounded-md px-3.5 py-1.5">{{ note.project_name }}</span>
+            <span v-if="note.phd_member_name" class="inline-block text-xs text-purple bg-purple/10 rounded-md px-3.5 py-1.5">PhD: {{ note.phd_member_name }}</span>
+          </div>
           <div v-if="note.attendees.length > 0" class="flex items-center gap-1 mt-2.5">
             <div v-for="a in note.attendees.slice(0, 4)" :key="a.team_member_id" class="w-5 h-5 rounded-full bg-hover flex items-center justify-center text-[8px] font-medium text-text-secondary" :title="a.name">
               {{ a.name.split(' ').map((n: string) => n[0]).join('') }}
@@ -142,6 +147,7 @@ watchEffect(() => {
             <div class="flex items-center gap-3 mt-1">
               <span class="text-xs text-text-secondary">{{ format(new Date(selectedNote.date), 'EEEE, MMMM d, yyyy') }}</span>
               <span v-if="selectedNote.project_name" class="text-xs text-blue bg-blue/10 rounded-md px-3.5 py-1.5">{{ selectedNote.project_name }}</span>
+              <span v-if="selectedNote.phd_member_name" class="text-xs text-purple bg-purple/10 rounded-md px-3.5 py-1.5">PhD: {{ selectedNote.phd_member_name }}</span>
             </div>
           </div>
           <button @click="deleteConfirm = selectedNote.id" class="p-2 rounded-lg hover:bg-danger/10 text-text-muted hover:text-danger transition-colors"><Trash2 :size="16" /></button>
@@ -210,6 +216,13 @@ watchEffect(() => {
               <option v-for="p in projectStore.projects" :key="p.id" :value="p.id">{{ p.name }}</option>
             </select>
           </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-text mb-2">PhD Student</label>
+          <select v-model="newForm.phd_tracker_id" class="w-full border border-border rounded-xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue/30 bg-bg">
+            <option :value="null">No PhD student</option>
+            <option v-for="t in phdStore.trackers" :key="t.id" :value="t.id">{{ t.member_name }}</option>
+          </select>
         </div>
         <div>
           <label class="block text-sm font-medium text-text mb-2">Attendees</label>

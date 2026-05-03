@@ -3,10 +3,12 @@ import type { MeetingNote, MeetingNoteWithDetails } from '@/types';
 
 export async function getAllMeetingNotes(): Promise<MeetingNoteWithDetails[]> {
   const db = await getDb();
-  const notes = await db.select<(MeetingNote & { project_name: string | null })[]>(
-    `SELECT m.*, p.name as project_name
+  const notes = await db.select<(MeetingNote & { project_name: string | null; phd_member_name: string | null })[]>(
+    `SELECT m.*, p.name as project_name, t.name as phd_member_name
      FROM meeting_notes m
      LEFT JOIN projects p ON m.project_id = p.id
+     LEFT JOIN phd_trackers pt ON m.phd_tracker_id = pt.id
+     LEFT JOIN team_members t ON pt.team_member_id = t.id
      ORDER BY m.date DESC`
   );
 
@@ -27,10 +29,12 @@ export async function getAllMeetingNotes(): Promise<MeetingNoteWithDetails[]> {
 
 export async function getMeetingNoteById(id: number): Promise<MeetingNoteWithDetails | undefined> {
   const db = await getDb();
-  const notes = await db.select<(MeetingNote & { project_name: string | null })[]>(
-    `SELECT m.*, p.name as project_name
+  const notes = await db.select<(MeetingNote & { project_name: string | null; phd_member_name: string | null })[]>(
+    `SELECT m.*, p.name as project_name, t.name as phd_member_name
      FROM meeting_notes m
      LEFT JOIN projects p ON m.project_id = p.id
+     LEFT JOIN phd_trackers pt ON m.phd_tracker_id = pt.id
+     LEFT JOIN team_members t ON pt.team_member_id = t.id
      WHERE m.id = $1`,
     [id]
   );
@@ -53,9 +57,9 @@ export async function createMeetingNote(
 ): Promise<number> {
   const db = await getDb();
   const result = await db.execute(
-    `INSERT INTO meeting_notes (title, date, content, project_id)
-     VALUES ($1, $2, $3, $4)`,
-    [note.title, note.date, note.content, note.project_id]
+    `INSERT INTO meeting_notes (title, date, content, project_id, phd_tracker_id)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [note.title, note.date, note.content, note.project_id, note.phd_tracker_id]
   );
   const meetingId = result.lastInsertId ?? 0;
 
@@ -82,6 +86,7 @@ export async function updateMeetingNote(
   if (note.date !== undefined) { fields.push(`date = $${paramIndex++}`); values.push(note.date); }
   if (note.content !== undefined) { fields.push(`content = $${paramIndex++}`); values.push(note.content); }
   if (note.project_id !== undefined) { fields.push(`project_id = $${paramIndex++}`); values.push(note.project_id); }
+  if (note.phd_tracker_id !== undefined) { fields.push(`phd_tracker_id = $${paramIndex++}`); values.push(note.phd_tracker_id); }
 
   if (fields.length > 0) {
     fields.push(`updated_at = datetime('now')`);
@@ -106,6 +111,34 @@ export async function updateMeetingNote(
 export async function deleteMeetingNote(id: number): Promise<void> {
   const db = await getDb();
   await db.execute('DELETE FROM meeting_notes WHERE id = $1', [id]);
+}
+
+export async function getMeetingNotesByPhdTrackerId(phdTrackerId: number): Promise<MeetingNoteWithDetails[]> {
+  const db = await getDb();
+  const notes = await db.select<(MeetingNote & { project_name: string | null; phd_member_name: string | null })[]>(
+    `SELECT m.*, p.name as project_name, t.name as phd_member_name
+     FROM meeting_notes m
+     LEFT JOIN projects p ON m.project_id = p.id
+     LEFT JOIN phd_trackers pt ON m.phd_tracker_id = pt.id
+     LEFT JOIN team_members t ON pt.team_member_id = t.id
+     WHERE m.phd_tracker_id = $1
+     ORDER BY m.date DESC`,
+    [phdTrackerId]
+  );
+
+  const result: MeetingNoteWithDetails[] = [];
+  for (const note of notes) {
+    const attendees = await db.select<{ team_member_id: number; name: string }[]>(
+      `SELECT ma.team_member_id, t.name
+       FROM meeting_attendees ma
+       JOIN team_members t ON ma.team_member_id = t.id
+       WHERE ma.meeting_id = $1
+       ORDER BY t.name`,
+      [note.id]
+    );
+    result.push({ ...note, attendees });
+  }
+  return result;
 }
 
 export async function getMeetingNoteCount(): Promise<number> {

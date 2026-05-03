@@ -69,6 +69,7 @@ export interface MeetingNote {
   date: string;
   content: string;
   project_id: number | null;
+  phd_tracker_id: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -111,6 +112,7 @@ export interface DeliverableWithAssignee extends Deliverable {
 export interface MeetingNoteWithDetails extends MeetingNote {
   attendees: { team_member_id: number; name: string }[];
   project_name: string | null;
+  phd_member_name: string | null;
 }
 
 export type KanbanColumn = 'todo' | 'in_progress' | 'done';

@@ -139,11 +139,20 @@ async function runMigrations(database: Database): Promise<void> {
       date TEXT NOT NULL,
       content TEXT DEFAULT '',
       project_id INTEGER,
+      phd_tracker_id INTEGER,
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now')),
-      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL
+      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL,
+      FOREIGN KEY (phd_tracker_id) REFERENCES phd_trackers(id) ON DELETE SET NULL
     )
   `)
+
+  // Add phd_tracker_id column if it doesn't exist (migration for existing databases)
+  try {
+    await database.execute(`ALTER TABLE meeting_notes ADD COLUMN phd_tracker_id INTEGER REFERENCES phd_trackers(id) ON DELETE SET NULL`)
+  } catch {
+    // Column already exists
+  }
 
   await database.execute(`
     CREATE TABLE IF NOT EXISTS meeting_attendees (

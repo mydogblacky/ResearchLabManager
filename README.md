@@ -47,15 +47,52 @@ The editor supports rich text formatting: bold, italic, strikethrough, headings,
 
 ## Getting Started
 
-Research Lab Manager is a desktop application. To run it from source, you need [Node.js](https://nodejs.org/) and [Rust](https://www.rust-lang.org/tools/install) installed.
+Research Lab Manager is a desktop application built with [Tauri](https://tauri.app/), Vue 3, and SQLite.
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) (v18 or later)
+- [Rust](https://www.rust-lang.org/tools/install) (stable toolchain)
+- Platform build tools required by Tauri:
+  - **macOS** — Xcode Command Line Tools (`xcode-select --install`)
+  - **Windows** — Microsoft Visual Studio C++ Build Tools and WebView2
+  - **Linux** — `webkit2gtk`, `libgtk-3-dev`, `libayatana-appindicator3-dev`, and friends (see the [Tauri prerequisites guide](https://tauri.app/start/prerequisites/))
+
+### Install dependencies
 
 ```bash
 npm install
+```
+
+### Run in development
+
+Launches the Vite dev server and opens the Tauri window with hot reload:
+
+```bash
 npm run tauri dev
 ```
 
-To build a standalone application:
+### Build a standalone application
+
+To build a production binary and platform installer:
 
 ```bash
 npm run tauri build
+```
+
+This compiles the Vue app, bundles the Rust binary, and produces installers in `src-tauri/target/release/bundle/`:
+
+- **macOS** — `.app` and `.dmg` under `bundle/macos/` and `bundle/dmg/`
+- **Windows** — `.msi` and `.exe` installers under `bundle/msi/` and `bundle/nsis/`
+- **Linux** — `.deb`, `.rpm`, and `.AppImage` under their respective folders
+
+The first build downloads and compiles all Rust dependencies and may take several minutes. Subsequent builds are much faster.
+
+### Other scripts
+
+```bash
+npm run dev       # Vite dev server only (no Tauri shell)
+npm run build     # Type-check and build the frontend bundle only
+npm run lint      # Run ESLint
+npm run preview   # Preview the built frontend
 ```
