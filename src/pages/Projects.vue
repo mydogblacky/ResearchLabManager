@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { Plus, Edit2, Trash2, FolderKanban, Users, Calendar, ChevronDown, ChevronUp, Package, Banknote } from 'lucide-vue-next'
-import { format } from 'date-fns'
+import { format, differenceInMonths } from 'date-fns'
 import { useProjectStore } from '@/stores/projectStore'
 import { useTeamStore } from '@/stores/teamStore'
 import type { Project, Deliverable, ProjectMember } from '@/types'
@@ -13,8 +13,9 @@ const projectStore = useProjectStore()
 const teamStore = useTeamStore()
 
 const projectColors = ['#4a90d9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16']
-const emptyProjectForm = { name: '', description: '', funding: '', status: 'active' as Project['status'], start_date: '', end_date: '', color: '#4a90d9' }
+const emptyProjectForm = { name: '', description: '', funding: '', budget: 0, person_months: 0, status: 'active' as Project['status'], start_date: '', end_date: '', color: '#4a90d9' }
 const emptyDeliverableForm = { title: '', description: '', due_date: '', status: 'pending' as Deliverable['status'], assigned_to: null as number | null }
+const today = new Date()
 
 const showProjectModal = ref(false)
 const showDeliverableModal = ref(false)
@@ -53,7 +54,7 @@ async function handleProjectSubmit() {
 
 function handleEditProject(project: Project) {
   editingProjectId.value = project.id
-  projectForm.value = { name: project.name, description: project.description, funding: project.funding, status: project.status, start_date: project.start_date, end_date: project.end_date, color: project.color }
+  projectForm.value = { name: project.name, description: project.description, funding: project.funding, budget: project.budget ?? 0, person_months: project.person_months ?? 0, status: project.status, start_date: project.start_date, end_date: project.end_date, color: project.color }
   showProjectModal.value = true
 }
 
@@ -89,6 +90,46 @@ async function handleDelete() {
 }
 
 const activeMembers = computed(() => teamStore.members.filter(m => m.is_active))
+
+const datedProjects = computed(() =>
+  projectStore.projects.filter(p => p.start_date && p.end_date)
+)
+
+const timelineData = computed(() => {
+  if (datedProjects.value.length === 0) return null
+  const allDates = datedProjects.value.flatMap(p => [new Date(p.start_date), new Date(p.end_date)])
+  const minDate = new Date(Math.min(...allDates.map(d => d.getTime())))
+  const maxDate = new Date(Math.max(...allDates.map(d => d.getTime())))
+  const range = maxDate.getTime() - minDate.getTime()
+  const years: number[] = []
+  for (let y = minDate.getFullYear(); y <= maxDate.getFullYear(); y++) years.push(y)
+  const todayPos = ((today.getTime() - minDate.getTime()) / range) * 100
+  return { minDate, maxDate, range, years, todayPos }
+})
+
+function projectBarStyle(project: Project) {
+  if (!timelineData.value) return {}
+  const { minDate, range } = timelineData.value
+  const start = new Date(project.start_date)
+  const end = new Date(project.end_date)
+  const left = ((start.getTime() - minDate.getTime()) / range) * 100
+  const width = ((end.getTime() - start.getTime()) / range) * 100
+  return { left: `${left}%`, width: `${width}%` }
+}
+
+function projectProgress(project: Project) {
+  const start = new Date(project.start_date).getTime()
+  const end = new Date(project.end_date).getTime()
+  if (end <= start) return 0
+  return Math.min(Math.max(((today.getTime() - start) / (end - start)) * 100, 0), 100)
+}
+
+function yearPos(year: number) {
+  if (!timelineData.value) return 0
+  const { minDate, range } = timelineData.value
+  const yearStart = new Date(year, 0, 1)
+  return Math.max(0, ((yearStart.getTime() - minDate.getTime()) / range) * 100)
+}
 </script>
 
 <template>
@@ -102,6 +143,39 @@ const activeMembers = computed(() => teamStore.members.filter(m => m.is_active))
       <button @click="projectForm = { ...emptyProjectForm }; editingProjectId = null; showProjectModal = true" class="flex items-center gap-2 px-5 py-2.5 bg-blue text-white text-sm font-medium rounded-xl hover:bg-blue-dark transition-colors">
         <Plus :size="16" /> New Project
       </button>
+    </div>
+
+    <!-- Timeline View -->
+    <div v-if="timelineData && datedProjects.length > 0" class="bg-card rounded-2xl p-8 mb-10 shadow-sm">
+      <h2 class="text-lg font-semibold text-text mb-8">Timeline Overview</h2>
+      <div class="relative">
+        <div class="flex items-center gap-5 mb-3">
+          <div class="w-48 shrink-0"></div>
+          <div class="flex-1 relative h-5">
+            <div v-for="year in timelineData.years" :key="year" class="absolute text-xs text-text-muted" :style="{ left: `${yearPos(year)}%` }">{{ year }}</div>
+          </div>
+        </div>
+        <div class="space-y-4">
+          <div v-for="project in datedProjects" :key="project.id" class="flex items-center gap-5">
+            <div class="w-48 shrink-0 text-right">
+              <p class="text-sm font-medium text-text truncate">{{ project.name }}</p>
+              <p class="text-xs text-text-muted mt-0.5">{{ differenceInMonths(new Date(project.end_date), new Date(project.start_date)) }} months</p>
+            </div>
+            <div class="flex-1 relative h-9">
+              <div class="absolute h-8 rounded-lg border border-border top-0.5" :style="{ ...projectBarStyle(project), backgroundColor: `${project.color}22` }">
+                <div class="h-full rounded-lg opacity-70" :style="{ width: `${projectProgress(project)}%`, backgroundColor: project.color }" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div
+          v-if="timelineData.todayPos >= 0 && timelineData.todayPos <= 100"
+          class="absolute top-0 bottom-0 w-px bg-danger z-10"
+          :style="{ left: `calc(13.25rem + (100% - 13.25rem) * ${timelineData.todayPos / 100})` }"
+        >
+          <div class="absolute -top-5 -translate-x-1/2 text-[10px] text-danger font-medium bg-card px-2.5 py-0.5 rounded">Today</div>
+        </div>
+      </div>
     </div>
 
     <div class="space-y-8">
@@ -200,6 +274,16 @@ const activeMembers = computed(() => teamStore.members.filter(m => m.is_active))
         <div>
           <label class="block text-sm font-medium text-text mb-2">Funding</label>
           <input type="text" v-model="projectForm.funding" class="w-full border border-border rounded-xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue/30 bg-bg" placeholder="e.g., ERC Starting Grant, FWO, Internal" />
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-text mb-2">Budget (€)</label>
+            <input type="number" min="0" step="any" v-model.number="projectForm.budget" class="w-full border border-border rounded-xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue/30 bg-bg" placeholder="0" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-text mb-2">Person Months</label>
+            <input type="number" min="0" step="any" v-model.number="projectForm.person_months" class="w-full border border-border rounded-xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue/30 bg-bg" placeholder="0" />
+          </div>
         </div>
         <div class="grid grid-cols-2 gap-4">
           <div>

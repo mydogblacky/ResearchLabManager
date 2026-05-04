@@ -15,9 +15,9 @@ export async function getProjectById(id: number): Promise<Project | undefined> {
 export async function createProject(project: Omit<Project, 'id' | 'created_at' | 'updated_at'>): Promise<number> {
   const db = await getDb();
   const result = await db.execute(
-    `INSERT INTO projects (name, description, funding, status, start_date, end_date, color)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-    [project.name, project.description, project.funding, project.status, project.start_date, project.end_date, project.color]
+    `INSERT INTO projects (name, description, funding, budget, person_months, status, start_date, end_date, color)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+    [project.name, project.description, project.funding, project.budget, project.person_months, project.status, project.start_date, project.end_date, project.color]
   );
   return result.lastInsertId ?? 0;
 }
@@ -31,6 +31,8 @@ export async function updateProject(id: number, project: Partial<Omit<Project, '
   if (project.name !== undefined) { fields.push(`name = $${paramIndex++}`); values.push(project.name); }
   if (project.description !== undefined) { fields.push(`description = $${paramIndex++}`); values.push(project.description); }
   if (project.funding !== undefined) { fields.push(`funding = $${paramIndex++}`); values.push(project.funding); }
+  if (project.budget !== undefined) { fields.push(`budget = $${paramIndex++}`); values.push(project.budget); }
+  if (project.person_months !== undefined) { fields.push(`person_months = $${paramIndex++}`); values.push(project.person_months); }
   if (project.status !== undefined) { fields.push(`status = $${paramIndex++}`); values.push(project.status); }
   if (project.start_date !== undefined) { fields.push(`start_date = $${paramIndex++}`); values.push(project.start_date); }
   if (project.end_date !== undefined) { fields.push(`end_date = $${paramIndex++}`); values.push(project.end_date); }

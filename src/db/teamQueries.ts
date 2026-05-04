@@ -20,9 +20,9 @@ export async function getTeamMemberById(id: number): Promise<TeamMember | undefi
 export async function createTeamMember(member: Omit<TeamMember, 'id' | 'created_at' | 'updated_at'>): Promise<number> {
   const db = await getDb();
   const result = await db.execute(
-    `INSERT INTO team_members (name, role, function_title, email, photo, start_date, is_active)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-    [member.name, member.role, member.function_title, member.email, member.photo, member.start_date, member.is_active]
+    `INSERT INTO team_members (name, role, function_title, email, photo, start_date, is_active, ugent_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+    [member.name, member.role, member.function_title, member.email, member.photo, member.start_date, member.is_active, member.ugent_id ?? '']
   );
   return result.lastInsertId ?? 0;
 }
@@ -40,6 +40,7 @@ export async function updateTeamMember(id: number, member: Partial<Omit<TeamMemb
   if (member.photo !== undefined) { fields.push(`photo = $${paramIndex++}`); values.push(member.photo); }
   if (member.start_date !== undefined) { fields.push(`start_date = $${paramIndex++}`); values.push(member.start_date); }
   if (member.is_active !== undefined) { fields.push(`is_active = $${paramIndex++}`); values.push(member.is_active); }
+  if (member.ugent_id !== undefined) { fields.push(`ugent_id = $${paramIndex++}`); values.push(member.ugent_id); }
 
   fields.push(`updated_at = datetime('now')`);
   values.push(id);

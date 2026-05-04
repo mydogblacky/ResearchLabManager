@@ -9,7 +9,7 @@ import Organigram from '@/components/Organigram.vue'
 
 const teamStore = useTeamStore()
 
-const emptyForm = { name: '', role: '', function_title: '', email: '', photo: '', start_date: '', is_active: 1 }
+const emptyForm = { name: '', role: '', function_title: '', email: '', photo: '', start_date: '', is_active: 1, ugent_id: '' }
 
 const currentTab = ref<'members' | 'organigram'>('members')
 const showModal = ref(false)
@@ -97,6 +97,7 @@ function handleEdit(member: TeamMember) {
     photo: member.photo,
     start_date: member.start_date,
     is_active: member.is_active,
+    ugent_id: member.ugent_id ?? '',
   }
   reportsTo.value = teamStore.getParentId(member.id)
   showModal.value = true
@@ -254,6 +255,11 @@ function closeModal() {
         <div>
           <label class="block text-sm font-medium text-text mb-2">Start Date</label>
           <input type="date" v-model="form.start_date" class="w-full border border-border rounded-xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue/30 focus:border-blue bg-bg" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-text mb-2">UGent ID</label>
+          <input type="text" v-model="form.ugent_id" inputmode="numeric" pattern="[0-9]*" class="w-full border border-border rounded-xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue/30 focus:border-blue bg-bg" placeholder="e.g., 801000947425" />
+          <p class="text-xs text-text-muted mt-1.5">12-digit Biblio UGent person ID — used to fetch publications. Find it in the URL of the person's Biblio profile.</p>
         </div>
         <div>
           <label class="block text-sm font-medium text-text mb-2">Reports to</label>

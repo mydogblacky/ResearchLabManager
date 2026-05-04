@@ -38,6 +38,7 @@ async function runMigrations(database: Database): Promise<void> {
       photo TEXT DEFAULT '',
       start_date TEXT DEFAULT '',
       is_active INTEGER DEFAULT 1,
+      ugent_id TEXT DEFAULT '',
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
     )
@@ -73,6 +74,13 @@ async function runMigrations(database: Database): Promise<void> {
     // Column already exists
   }
 
+  // Add ugent_id column for Biblio UGent publication tracking
+  try {
+    await database.execute(`ALTER TABLE team_members ADD COLUMN ugent_id TEXT DEFAULT ''`)
+  } catch {
+    // Column already exists
+  }
+
   await database.execute(`
     CREATE TABLE IF NOT EXISTS team_member_relationships (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -89,6 +97,8 @@ async function runMigrations(database: Database): Promise<void> {
       name TEXT NOT NULL,
       description TEXT DEFAULT '',
       funding TEXT DEFAULT '',
+      budget REAL DEFAULT 0,
+      person_months REAL DEFAULT 0,
       status TEXT DEFAULT 'active',
       start_date TEXT DEFAULT '',
       end_date TEXT DEFAULT '',
@@ -101,6 +111,20 @@ async function runMigrations(database: Database): Promise<void> {
   // Add funding column if it doesn't exist (migration for existing databases)
   try {
     await database.execute(`ALTER TABLE projects ADD COLUMN funding TEXT DEFAULT ''`)
+  } catch {
+    // Column already exists
+  }
+
+  // Add budget column if it doesn't exist (migration for existing databases)
+  try {
+    await database.execute(`ALTER TABLE projects ADD COLUMN budget REAL DEFAULT 0`)
+  } catch {
+    // Column already exists
+  }
+
+  // Add person_months column if it doesn't exist (migration for existing databases)
+  try {
+    await database.execute(`ALTER TABLE projects ADD COLUMN person_months REAL DEFAULT 0`)
   } catch {
     // Column already exists
   }

@@ -7,8 +7,30 @@ export interface TeamMember {
   photo: string;
   start_date: string;
   is_active: number;
+  ugent_id: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface Publication {
+  biblio_id: string;
+  title: string;
+  year: number | null;
+  type: string;
+  publication_status: string;
+  doi: string;
+  journal: string;
+  authors: string[];
+  handle: string;
+}
+
+export interface MemberPublications {
+  member_id: number;
+  member_name: string;
+  ugent_id: string;
+  publications: Publication[];
+  fetched_at: string;
+  error?: string;
 }
 
 export interface PhdTracker {
@@ -36,12 +58,22 @@ export interface Project {
   name: string;
   description: string;
   funding: string;
+  budget: number;
+  person_months: number;
   status: 'active' | 'completed' | 'on_hold' | 'planned';
   start_date: string;
   end_date: string;
   color: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface FundingBreakdown {
+  funding: string;
+  project_count: number;
+  total_budget: number;
+  total_person_months: number;
+  projects: Project[];
 }
 
 export interface ProjectMember {
