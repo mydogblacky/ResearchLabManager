@@ -40,6 +40,19 @@ A built-in note-taking tool for lab meetings. Create a new meeting note by givin
 
 The editor supports rich text formatting: bold, italic, strikethrough, headings, bullet lists, numbered lists, and block quotes. Notes are saved automatically as you type. A sidebar lets you browse and search through all your meeting notes.
 
+### Publications
+
+Pull each team member's publication record straight from [Biblio UGent](https://biblio.ugent.be/). Set a member's UGent ID on the Team page — either the **numeric form** (e.g., `801000947425`) or the **UUID form** found on newer Biblio profiles (e.g., `EB23467E-5E7C-11E6-BCAC-C275B5D1D7B1`) — and the Publications page will fetch their full bibliography on demand.
+
+Each member's publications are listed with title, authors, year, type, journal, and a link out to the Biblio record or DOI. The page also surfaces aggregate metadata across all tracked members:
+
+- **% A1 tile** — share of publications classified as A1 (journal article in Web of Science) under the Belgian VABB classification.
+- **By VABB classification** — pie chart of A1 / A2 / B / C / D / U / V codes, with A1 highlighted.
+- **By type** — pie chart breaking down journal articles, book chapters, conference papers, etc.
+- **Publications per year** — full-width timeline (bar per year, oldest left to newest right) so you can see output trends at a glance.
+
+Filters let you narrow the per-member list by year or type.
+
 ### Settings
 
 - **Export** — Download all your data as a JSON file for backup.

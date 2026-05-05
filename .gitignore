@@ -13,3 +13,6 @@ src-tauri/target/
 # Environment
 .env
 .env.*
+
+# Editor / tool local config
+.claude/

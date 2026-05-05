@@ -25,6 +25,7 @@ struct Publication {
     #[serde(rename = "type")]
     pub_type: String,
     publication_status: String,
+    classification: String,
     doi: String,
     journal: String,
     authors: Vec<String>,
@@ -60,6 +61,7 @@ fn parse_publication(line: &str) -> Option<Publication> {
     let title = first_str(&v, &["title"]);
     let pub_type = first_str(&v, &["type"]);
     let publication_status = first_str(&v, &["publication_status", "status"]);
+    let classification = first_str(&v, &["classification", "vabb_type"]);
     let doi = first_str(&v, &["doi"]);
     let handle = first_str(&v, &["handle"]);
 
@@ -94,6 +96,7 @@ fn parse_publication(line: &str) -> Option<Publication> {
         year: parse_year(&v),
         pub_type,
         publication_status,
+        classification,
         doi,
         journal,
         authors,
@@ -107,8 +110,8 @@ async fn fetch_biblio_publications(ugent_id: String) -> Result<Vec<Publication>,
     if trimmed.is_empty() {
         return Err("UGent ID is empty".into());
     }
-    if !trimmed.chars().all(|c| c.is_ascii_digit()) {
-        return Err("UGent ID must contain only digits".into());
+    if !trimmed.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+        return Err("UGent ID must be a numeric ID or a UUID-style identifier".into());
     }
 
     let url = format!(

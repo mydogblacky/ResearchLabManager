@@ -4,6 +4,7 @@ import { BookOpen, RefreshCw, ExternalLink, AlertCircle, Search } from 'lucide-v
 import { useTeamStore } from '@/stores/teamStore'
 import { usePublicationStore } from '@/stores/publicationStore'
 import type { TeamMember, Publication } from '@/types'
+import PieChart from '@/components/PieChart.vue'
 
 const teamStore = useTeamStore()
 const publicationStore = usePublicationStore()
@@ -41,6 +42,7 @@ const totals = computed(() => {
   let published = 0
   const byType: Record<string, number> = {}
   const byYear: Record<number, number> = {}
+  const byClassification: Record<string, number> = {}
   for (const m of eligibleMembers.value) {
     const data = publicationStore.byMember[m.id]
     if (!data) continue
@@ -49,9 +51,11 @@ const totals = computed(() => {
       if (p.publication_status === 'published') published++
       if (p.type) byType[p.type] = (byType[p.type] ?? 0) + 1
       if (p.year) byYear[p.year] = (byYear[p.year] ?? 0) + 1
+      const cls = (p.classification ?? '').trim() || 'Unclassified'
+      byClassification[cls] = (byClassification[cls] ?? 0) + 1
     }
   }
-  return { total, published, byType, byYear }
+  return { total, published, byType, byYear, byClassification }
 })
 
 const allYears = computed(() =>
@@ -59,6 +63,59 @@ const allYears = computed(() =>
 )
 
 const allTypes = computed(() => Object.keys(totals.value.byType).sort())
+
+const classificationSlices = computed(() =>
+  Object.entries(totals.value.byClassification)
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => a.label.localeCompare(b.label))
+)
+
+interface YearBar {
+  year: number
+  count: number
+}
+
+const yearTimeline = computed<YearBar[]>(() => {
+  const years = Object.keys(totals.value.byYear).map(Number).filter(y => Number.isFinite(y))
+  if (years.length === 0) return []
+  const min = Math.min(...years)
+  const max = Math.max(...years)
+  const bars: YearBar[] = []
+  for (let y = min; y <= max; y++) {
+    bars.push({ year: y, count: totals.value.byYear[y] ?? 0 })
+  }
+  return bars
+})
+
+const yearTimelineMax = computed(() =>
+  yearTimeline.value.reduce((m, b) => Math.max(m, b.count), 0)
+)
+
+function yearLabelStride(): number {
+  const n = yearTimeline.value.length
+  if (n <= 12) return 1
+  if (n <= 24) return 2
+  if (n <= 60) return 5
+  return 10
+}
+
+const typeSlices = computed(() =>
+  Object.entries(totals.value.byType)
+    .map(([label, value]) => ({ label: typeLabel(label), value }))
+    .sort((a, b) => b.value - a.value)
+)
+
+const a1Pct = computed(() => {
+  if (totals.value.total === 0) return 0
+  const a1 = totals.value.byClassification['A1'] ?? 0
+  return (a1 / totals.value.total) * 100
+})
+
+function formatPct(n: number): string {
+  if (n === 0) return '0'
+  if (n >= 10) return n.toFixed(0)
+  return n.toFixed(1)
+}
 
 function publicationCount(memberId: number): number {
   return publicationStore.byMember[memberId]?.publications.length ?? 0
@@ -124,8 +181,53 @@ const someLoading = computed(() => publicationStore.loadingIds.size > 0)
         <p class="text-2xl font-bold text-text">{{ eligibleMembers.length }}</p>
       </div>
       <div class="bg-card rounded-2xl p-6 shadow-sm">
-        <div class="text-xs uppercase tracking-wide text-text-muted mb-2">Distinct Years</div>
-        <p class="text-2xl font-bold text-text">{{ allYears.length }}</p>
+        <div class="text-xs uppercase tracking-wide text-text-muted mb-2">% A1</div>
+        <p class="text-2xl font-bold text-text">{{ formatPct(a1Pct) }}%</p>
+        <p class="text-[11px] text-text-muted mt-1">{{ totals.byClassification['A1'] ?? 0 }} of {{ totals.total }}</p>
+      </div>
+    </div>
+
+    <!-- Pie charts -->
+    <div v-if="totals.total > 0" class="flex flex-col gap-5 mb-8">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div class="bg-card rounded-2xl p-6 shadow-sm">
+          <h3 class="text-sm font-semibold text-text mb-1">Publications by VABB classification</h3>
+          <p class="text-xs text-text-muted mb-4">Share of each Belgian classification code (A1 = journal article in Web of Science)</p>
+          <PieChart :data="classificationSlices" highlight-label="A1" />
+        </div>
+        <div class="bg-card rounded-2xl p-6 shadow-sm">
+          <h3 class="text-sm font-semibold text-text mb-1">Publications by type</h3>
+          <p class="text-xs text-text-muted mb-4">Breakdown by publication type (journal article, book chapter, conference, …)</p>
+          <PieChart :data="typeSlices" />
+        </div>
+      </div>
+      <div class="bg-card rounded-2xl p-6 shadow-sm">
+        <h3 class="text-sm font-semibold text-text mb-1">Publications per year</h3>
+        <p class="text-xs text-text-muted mb-4">Number of publications grouped by publication year</p>
+        <div v-if="yearTimeline.length === 0" class="text-xs text-text-muted">No data</div>
+        <div v-else class="flex items-end gap-1 h-40 border-b border-border pb-1">
+          <div
+            v-for="bar in yearTimeline"
+            :key="bar.year"
+            class="flex-1 flex flex-col items-center justify-end h-full group min-w-0"
+            :title="`${bar.year}: ${bar.count} publication${bar.count === 1 ? '' : 's'}`"
+          >
+            <span class="text-[10px] tabular-nums text-text-muted mb-1 opacity-0 group-hover:opacity-100 transition-opacity">{{ bar.count }}</span>
+            <div
+              class="w-full bg-blue rounded-t-sm group-hover:bg-blue-dark transition-colors"
+              :style="{ height: yearTimelineMax === 0 ? '0%' : `${(bar.count / yearTimelineMax) * 100}%` }"
+            ></div>
+          </div>
+        </div>
+        <div v-if="yearTimeline.length > 0" class="flex gap-1 mt-1.5">
+          <div
+            v-for="(bar, i) in yearTimeline"
+            :key="bar.year"
+            class="flex-1 text-[10px] text-text-muted text-center tabular-nums truncate"
+          >
+            <span v-if="i % yearLabelStride() === 0 || i === yearTimeline.length - 1">{{ bar.year }}</span>
+          </div>
+        </div>
       </div>
     </div>
 

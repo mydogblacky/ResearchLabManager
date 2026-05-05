@@ -18,6 +18,7 @@ export interface Publication {
   year: number | null;
   type: string;
   publication_status: string;
+  classification: string;
   doi: string;
   journal: string;
   authors: string[];
