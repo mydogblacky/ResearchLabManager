@@ -1,83 +1,103 @@
-import { getDb } from './database';
-import type { TeamMember, TeamMemberRelationship } from '@/types';
+import { supabase } from '@/supabase'
+import type { TeamMember, TeamMemberRelationship } from '@/types'
 
 export async function getAllTeamMembers(): Promise<TeamMember[]> {
-  const db = await getDb();
-  return await db.select<TeamMember[]>('SELECT * FROM team_members ORDER BY name');
+  const { data, error } = await supabase
+    .from('team_members')
+    .select('*')
+    .order('name')
+  if (error) throw error
+  return (data ?? []) as TeamMember[]
 }
 
 export async function getActiveTeamMembers(): Promise<TeamMember[]> {
-  const db = await getDb();
-  return await db.select<TeamMember[]>('SELECT * FROM team_members WHERE is_active = 1 ORDER BY name');
+  const { data, error } = await supabase
+    .from('team_members')
+    .select('*')
+    .eq('is_active', 1)
+    .order('name')
+  if (error) throw error
+  return (data ?? []) as TeamMember[]
 }
 
 export async function getTeamMemberById(id: number): Promise<TeamMember | undefined> {
-  const db = await getDb();
-  const results = await db.select<TeamMember[]>('SELECT * FROM team_members WHERE id = $1', [id]);
-  return results[0];
+  const { data, error } = await supabase
+    .from('team_members')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle()
+  if (error) throw error
+  return (data ?? undefined) as TeamMember | undefined
 }
 
-export async function createTeamMember(member: Omit<TeamMember, 'id' | 'created_at' | 'updated_at'>): Promise<number> {
-  const db = await getDb();
-  const result = await db.execute(
-    `INSERT INTO team_members (name, role, function_title, email, photo, start_date, is_active, ugent_id)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-    [member.name, member.role, member.function_title, member.email, member.photo, member.start_date, member.is_active, member.ugent_id ?? '']
-  );
-  return result.lastInsertId ?? 0;
+export async function createTeamMember(
+  member: Omit<TeamMember, 'id' | 'created_at' | 'updated_at'>
+): Promise<number> {
+  const { data, error } = await supabase
+    .from('team_members')
+    .insert({
+      name: member.name,
+      role: member.role,
+      function_title: member.function_title,
+      email: member.email,
+      photo: member.photo,
+      start_date: member.start_date,
+      is_active: member.is_active,
+      ugent_id: member.ugent_id ?? '',
+    })
+    .select('id')
+    .single()
+  if (error) throw error
+  return data.id as number
 }
 
-export async function updateTeamMember(id: number, member: Partial<Omit<TeamMember, 'id' | 'created_at' | 'updated_at'>>): Promise<void> {
-  const db = await getDb();
-  const fields: string[] = [];
-  const values: unknown[] = [];
-  let paramIndex = 1;
-
-  if (member.name !== undefined) { fields.push(`name = $${paramIndex++}`); values.push(member.name); }
-  if (member.role !== undefined) { fields.push(`role = $${paramIndex++}`); values.push(member.role); }
-  if (member.function_title !== undefined) { fields.push(`function_title = $${paramIndex++}`); values.push(member.function_title); }
-  if (member.email !== undefined) { fields.push(`email = $${paramIndex++}`); values.push(member.email); }
-  if (member.photo !== undefined) { fields.push(`photo = $${paramIndex++}`); values.push(member.photo); }
-  if (member.start_date !== undefined) { fields.push(`start_date = $${paramIndex++}`); values.push(member.start_date); }
-  if (member.is_active !== undefined) { fields.push(`is_active = $${paramIndex++}`); values.push(member.is_active); }
-  if (member.ugent_id !== undefined) { fields.push(`ugent_id = $${paramIndex++}`); values.push(member.ugent_id); }
-
-  fields.push(`updated_at = datetime('now')`);
-  values.push(id);
-
-  await db.execute(
-    `UPDATE team_members SET ${fields.join(', ')} WHERE id = $${paramIndex}`,
-    values
-  );
+export async function updateTeamMember(
+  id: number,
+  member: Partial<Omit<TeamMember, 'id' | 'created_at' | 'updated_at'>>
+): Promise<void> {
+  const { error } = await supabase
+    .from('team_members')
+    .update(member)
+    .eq('id', id)
+  if (error) throw error
 }
 
 export async function deleteTeamMember(id: number): Promise<void> {
-  const db = await getDb();
-  await db.execute('DELETE FROM team_members WHERE id = $1', [id]);
+  const { error } = await supabase.from('team_members').delete().eq('id', id)
+  if (error) throw error
 }
 
 export async function getTeamMemberCount(): Promise<number> {
-  const db = await getDb();
-  const result = await db.select<{ count: number }[]>('SELECT COUNT(*) as count FROM team_members WHERE is_active = 1');
-  return result[0].count;
+  const { count, error } = await supabase
+    .from('team_members')
+    .select('*', { count: 'exact', head: true })
+    .eq('is_active', 1)
+  if (error) throw error
+  return count ?? 0
 }
 
-// Relationships
 export async function getAllRelationships(): Promise<TeamMemberRelationship[]> {
-  const db = await getDb();
-  return await db.select<TeamMemberRelationship[]>('SELECT * FROM team_member_relationships');
+  const { data, error } = await supabase
+    .from('team_member_relationships')
+    .select('*')
+  if (error) throw error
+  return (data ?? []) as TeamMemberRelationship[]
 }
 
 export async function setParent(memberId: number, parentId: number): Promise<void> {
-  const db = await getDb();
-  await db.execute(
-    `INSERT INTO team_member_relationships (member_id, parent_id) VALUES ($1, $2)
-     ON CONFLICT(member_id) DO UPDATE SET parent_id = $2`,
-    [memberId, parentId]
-  );
+  const { error } = await supabase
+    .from('team_member_relationships')
+    .upsert(
+      { member_id: memberId, parent_id: parentId },
+      { onConflict: 'member_id' }
+    )
+  if (error) throw error
 }
 
 export async function removeParent(memberId: number): Promise<void> {
-  const db = await getDb();
-  await db.execute('DELETE FROM team_member_relationships WHERE member_id = $1', [memberId]);
+  const { error } = await supabase
+    .from('team_member_relationships')
+    .delete()
+    .eq('member_id', memberId)
+  if (error) throw error
 }

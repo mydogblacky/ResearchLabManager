@@ -14,5 +14,9 @@ src-tauri/target/
 .env
 .env.*
 
+# Local data dumps from the legacy SQLite migration (contains real lab data)
+legacy-backup.json
+*-backup.json
+
 # Editor / tool local config
 .claude/

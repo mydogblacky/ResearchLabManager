@@ -2,20 +2,39 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { Project, Deliverable, DeliverableWithAssignee } from '@/types'
 import * as projectQueries from '@/db/projectQueries'
+import { subscribeToTables, debounce } from '@/db/realtime'
 
 export const useProjectStore = defineStore('project', () => {
   const projects = ref<Project[]>([])
   const upcomingDeliverables = ref<DeliverableWithAssignee[]>([])
   const loading = ref(false)
+  let subscribed = false
+
+  const refresh = debounce(async () => {
+    projects.value = await projectQueries.getAllProjects()
+    upcomingDeliverables.value = await projectQueries.getAllUpcomingDeliverables()
+  })
+
+  function ensureSubscribed() {
+    if (subscribed) return
+    subscribed = true
+    subscribeToTables(
+      'project',
+      ['projects', 'project_members', 'deliverables'],
+      refresh
+    )
+  }
 
   async function loadProjects() {
     loading.value = true
     projects.value = await projectQueries.getAllProjects()
     loading.value = false
+    ensureSubscribed()
   }
 
   async function loadUpcomingDeliverables() {
     upcomingDeliverables.value = await projectQueries.getAllUpcomingDeliverables()
+    ensureSubscribed()
   }
 
   async function addProject(project: Omit<Project, 'id' | 'created_at' | 'updated_at'>) {

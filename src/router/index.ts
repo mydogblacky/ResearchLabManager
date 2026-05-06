@@ -9,10 +9,13 @@ import Publications from '@/pages/Publications.vue'
 import MeetingNotes from '@/pages/MeetingNotes.vue'
 import Kanban from '@/pages/Kanban.vue'
 import Settings from '@/pages/Settings.vue'
+import Login from '@/pages/Login.vue'
+import { useAuthStore } from '@/stores/authStore'
 
 const router = createRouter({
   history: createWebHashHistory(),
   routes: [
+    { path: '/login', component: Login, meta: { public: true } },
     {
       path: '/',
       component: Layout,
@@ -29,6 +32,13 @@ const router = createRouter({
       ],
     },
   ],
+})
+
+router.beforeEach((to) => {
+  const auth = useAuthStore()
+  if (to.meta.public) return true
+  if (!auth.isAuthenticated) return { path: '/login' }
+  return true
 })
 
 export default router

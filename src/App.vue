@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { getDb } from '@/db/database'
-import { seedIfEmpty } from '@/utils/seedData'
+import { onMounted, ref } from 'vue'
+import { useAuthStore } from '@/stores/authStore'
 
+const auth = useAuthStore()
 const ready = ref(false)
 
 onMounted(async () => {
-  await getDb()
-  await seedIfEmpty()
+  await auth.init()
   ready.value = true
 })
 </script>

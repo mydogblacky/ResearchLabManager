@@ -2,7 +2,7 @@
 
 # Research Lab Manager
 
-A desktop application for research lab leaders to manage their team, track PhD student progress, organize research projects, and keep meeting notes — all in one place. Your data is stored locally on your machine.
+A desktop application for research lab leaders to manage their team, track PhD student progress, organize research projects, and keep meeting notes — all in one place. Lab data lives in a shared Supabase (Postgres) project so everyone in the lab sees the same data and changes propagate live.
 
 ## Features
 
@@ -55,21 +55,40 @@ Filters let you narrow the per-member list by year or type.
 
 ### Settings
 
-- **Export** — Download all your data as a JSON file for backup.
-- **Import** — Restore from a previously exported backup. This replaces all current data, so use it with care.
+- **Account** — Shows the email you're signed in as and lets you sign out.
+- **Export** — Download a JSON snapshot of the shared lab database (useful for backups).
+- **Import** — Replace the shared database with a JSON backup. Also accepts exports from the legacy local-SQLite version of the app (one-time migration). **This affects everyone in the lab**, so use with care.
 
 ## Getting Started
 
-Research Lab Manager is a desktop application built with [Tauri](https://tauri.app/), Vue 3, and SQLite.
+Research Lab Manager is a desktop application built with [Tauri](https://tauri.app/), Vue 3, and [Supabase](https://supabase.com/) (hosted Postgres + auth + realtime).
 
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/) (v18 or later)
 - [Rust](https://www.rust-lang.org/tools/install) (stable toolchain)
+- A free [Supabase](https://supabase.com/) project (one per lab — everyone shares it)
 - Platform build tools required by Tauri:
   - **macOS** — Xcode Command Line Tools (`xcode-select --install`)
   - **Windows** — Microsoft Visual Studio C++ Build Tools and WebView2
   - **Linux** — `webkit2gtk`, `libgtk-3-dev`, `libayatana-appindicator3-dev`, and friends (see the [Tauri prerequisites guide](https://tauri.app/start/prerequisites/))
+
+### One-time Supabase setup (do this once per lab)
+
+1. Sign up at [supabase.com](https://supabase.com/) and create a new project. Pick the region closest to your lab.
+2. In the project dashboard, open the **SQL editor** and run the contents of [`supabase/schema.sql`](supabase/schema.sql). This creates all tables, views, RLS policies, and enables realtime.
+3. In **Authentication → Providers**, make sure Email is enabled. For a small lab, you can also disable "Confirm email" under **Authentication → Settings** so colleagues can sign in immediately after sign-up.
+4. In **Settings → API**, copy the **Project URL** and the **anon public** key. Share them with your colleagues — these are not secrets.
+5. (Optional, one-time) If you have an export from the legacy local-SQLite version, sign in to the new app and use **Settings → Import JSON** to load it into Supabase.
+
+### Per-user setup
+
+Each colleague clones the repo and creates a `.env` file with the values from step 4 above:
+
+```bash
+cp .env.example .env
+# then edit .env and paste in VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY
+```
 
 ### Install dependencies
 

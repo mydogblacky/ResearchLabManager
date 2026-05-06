@@ -1,75 +1,75 @@
-import { getDb } from './database';
-import type { MeetingNote, MeetingNoteWithDetails } from '@/types';
+import { supabase } from '@/supabase'
+import type { MeetingNote, MeetingNoteWithDetails } from '@/types'
+
+type MeetingRow = MeetingNote & { project_name: string | null; phd_member_name: string | null }
+type AttendeeRow = { meeting_id: number; team_member_id: number; team_members: { name: string } | null }
+
+async function attachAttendees(notes: MeetingRow[]): Promise<MeetingNoteWithDetails[]> {
+  if (notes.length === 0) return []
+  const ids = notes.map(n => n.id)
+  const { data, error } = await supabase
+    .from('meeting_attendees')
+    .select('meeting_id, team_member_id, team_members(name)')
+    .in('meeting_id', ids)
+  if (error) throw error
+
+  const byMeeting = new Map<number, { team_member_id: number; name: string }[]>()
+  for (const row of (data ?? []) as unknown as AttendeeRow[]) {
+    const list = byMeeting.get(row.meeting_id) ?? []
+    list.push({ team_member_id: row.team_member_id, name: row.team_members?.name ?? '' })
+    byMeeting.set(row.meeting_id, list)
+  }
+  for (const list of byMeeting.values()) {
+    list.sort((a, b) => a.name.localeCompare(b.name))
+  }
+  return notes.map(n => ({ ...n, attendees: byMeeting.get(n.id) ?? [] }))
+}
 
 export async function getAllMeetingNotes(): Promise<MeetingNoteWithDetails[]> {
-  const db = await getDb();
-  const notes = await db.select<(MeetingNote & { project_name: string | null; phd_member_name: string | null })[]>(
-    `SELECT m.*, p.name as project_name, t.name as phd_member_name
-     FROM meeting_notes m
-     LEFT JOIN projects p ON m.project_id = p.id
-     LEFT JOIN phd_trackers pt ON m.phd_tracker_id = pt.id
-     LEFT JOIN team_members t ON pt.team_member_id = t.id
-     ORDER BY m.date DESC`
-  );
-
-  const result: MeetingNoteWithDetails[] = [];
-  for (const note of notes) {
-    const attendees = await db.select<{ team_member_id: number; name: string }[]>(
-      `SELECT ma.team_member_id, t.name
-       FROM meeting_attendees ma
-       JOIN team_members t ON ma.team_member_id = t.id
-       WHERE ma.meeting_id = $1
-       ORDER BY t.name`,
-      [note.id]
-    );
-    result.push({ ...note, attendees });
-  }
-  return result;
+  const { data, error } = await supabase
+    .from('meeting_notes_with_details')
+    .select('*')
+    .order('date', { ascending: false })
+  if (error) throw error
+  return attachAttendees((data ?? []) as MeetingRow[])
 }
 
 export async function getMeetingNoteById(id: number): Promise<MeetingNoteWithDetails | undefined> {
-  const db = await getDb();
-  const notes = await db.select<(MeetingNote & { project_name: string | null; phd_member_name: string | null })[]>(
-    `SELECT m.*, p.name as project_name, t.name as phd_member_name
-     FROM meeting_notes m
-     LEFT JOIN projects p ON m.project_id = p.id
-     LEFT JOIN phd_trackers pt ON m.phd_tracker_id = pt.id
-     LEFT JOIN team_members t ON pt.team_member_id = t.id
-     WHERE m.id = $1`,
-    [id]
-  );
-  if (!notes[0]) return undefined;
-
-  const attendees = await db.select<{ team_member_id: number; name: string }[]>(
-    `SELECT ma.team_member_id, t.name
-     FROM meeting_attendees ma
-     JOIN team_members t ON ma.team_member_id = t.id
-     WHERE ma.meeting_id = $1
-     ORDER BY t.name`,
-    [id]
-  );
-  return { ...notes[0], attendees };
+  const { data, error } = await supabase
+    .from('meeting_notes_with_details')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle()
+  if (error) throw error
+  if (!data) return undefined
+  const [withAttendees] = await attachAttendees([data as MeetingRow])
+  return withAttendees
 }
 
 export async function createMeetingNote(
   note: Omit<MeetingNote, 'id' | 'created_at' | 'updated_at'>,
   attendeeIds: number[]
 ): Promise<number> {
-  const db = await getDb();
-  const result = await db.execute(
-    `INSERT INTO meeting_notes (title, date, content, project_id, phd_tracker_id)
-     VALUES ($1, $2, $3, $4, $5)`,
-    [note.title, note.date, note.content, note.project_id, note.phd_tracker_id]
-  );
-  const meetingId = result.lastInsertId ?? 0;
+  const { data, error } = await supabase
+    .from('meeting_notes')
+    .insert({
+      title: note.title,
+      date: note.date,
+      content: note.content,
+      project_id: note.project_id,
+      phd_tracker_id: note.phd_tracker_id,
+    })
+    .select('id')
+    .single()
+  if (error) throw error
+  const meetingId = data.id as number
 
-  for (const memberId of attendeeIds) {
-    await db.execute(
-      'INSERT INTO meeting_attendees (meeting_id, team_member_id) VALUES ($1, $2)',
-      [meetingId, memberId]
-    );
+  if (attendeeIds.length > 0) {
+    const rows = attendeeIds.map(team_member_id => ({ meeting_id: meetingId, team_member_id }))
+    const { error: attErr } = await supabase.from('meeting_attendees').insert(rows)
+    if (attErr) throw attErr
   }
-  return meetingId;
+  return meetingId
 }
 
 export async function updateMeetingNote(
@@ -77,72 +77,47 @@ export async function updateMeetingNote(
   note: Partial<Omit<MeetingNote, 'id' | 'created_at' | 'updated_at'>>,
   attendeeIds?: number[]
 ): Promise<void> {
-  const db = await getDb();
-  const fields: string[] = [];
-  const values: unknown[] = [];
-  let paramIndex = 1;
-
-  if (note.title !== undefined) { fields.push(`title = $${paramIndex++}`); values.push(note.title); }
-  if (note.date !== undefined) { fields.push(`date = $${paramIndex++}`); values.push(note.date); }
-  if (note.content !== undefined) { fields.push(`content = $${paramIndex++}`); values.push(note.content); }
-  if (note.project_id !== undefined) { fields.push(`project_id = $${paramIndex++}`); values.push(note.project_id); }
-  if (note.phd_tracker_id !== undefined) { fields.push(`phd_tracker_id = $${paramIndex++}`); values.push(note.phd_tracker_id); }
-
-  if (fields.length > 0) {
-    fields.push(`updated_at = datetime('now')`);
-    values.push(id);
-    await db.execute(
-      `UPDATE meeting_notes SET ${fields.join(', ')} WHERE id = $${paramIndex}`,
-      values
-    );
+  if (Object.keys(note).length > 0) {
+    const { error } = await supabase.from('meeting_notes').update(note).eq('id', id)
+    if (error) throw error
   }
 
   if (attendeeIds !== undefined) {
-    await db.execute('DELETE FROM meeting_attendees WHERE meeting_id = $1', [id]);
-    for (const memberId of attendeeIds) {
-      await db.execute(
-        'INSERT INTO meeting_attendees (meeting_id, team_member_id) VALUES ($1, $2)',
-        [id, memberId]
-      );
+    const { error: delErr } = await supabase
+      .from('meeting_attendees')
+      .delete()
+      .eq('meeting_id', id)
+    if (delErr) throw delErr
+
+    if (attendeeIds.length > 0) {
+      const rows = attendeeIds.map(team_member_id => ({ meeting_id: id, team_member_id }))
+      const { error: insErr } = await supabase.from('meeting_attendees').insert(rows)
+      if (insErr) throw insErr
     }
   }
 }
 
 export async function deleteMeetingNote(id: number): Promise<void> {
-  const db = await getDb();
-  await db.execute('DELETE FROM meeting_notes WHERE id = $1', [id]);
+  const { error } = await supabase.from('meeting_notes').delete().eq('id', id)
+  if (error) throw error
 }
 
-export async function getMeetingNotesByPhdTrackerId(phdTrackerId: number): Promise<MeetingNoteWithDetails[]> {
-  const db = await getDb();
-  const notes = await db.select<(MeetingNote & { project_name: string | null; phd_member_name: string | null })[]>(
-    `SELECT m.*, p.name as project_name, t.name as phd_member_name
-     FROM meeting_notes m
-     LEFT JOIN projects p ON m.project_id = p.id
-     LEFT JOIN phd_trackers pt ON m.phd_tracker_id = pt.id
-     LEFT JOIN team_members t ON pt.team_member_id = t.id
-     WHERE m.phd_tracker_id = $1
-     ORDER BY m.date DESC`,
-    [phdTrackerId]
-  );
-
-  const result: MeetingNoteWithDetails[] = [];
-  for (const note of notes) {
-    const attendees = await db.select<{ team_member_id: number; name: string }[]>(
-      `SELECT ma.team_member_id, t.name
-       FROM meeting_attendees ma
-       JOIN team_members t ON ma.team_member_id = t.id
-       WHERE ma.meeting_id = $1
-       ORDER BY t.name`,
-      [note.id]
-    );
-    result.push({ ...note, attendees });
-  }
-  return result;
+export async function getMeetingNotesByPhdTrackerId(
+  phdTrackerId: number
+): Promise<MeetingNoteWithDetails[]> {
+  const { data, error } = await supabase
+    .from('meeting_notes_with_details')
+    .select('*')
+    .eq('phd_tracker_id', phdTrackerId)
+    .order('date', { ascending: false })
+  if (error) throw error
+  return attachAttendees((data ?? []) as MeetingRow[])
 }
 
 export async function getMeetingNoteCount(): Promise<number> {
-  const db = await getDb();
-  const result = await db.select<{ count: number }[]>('SELECT COUNT(*) as count FROM meeting_notes');
-  return result[0].count;
+  const { count, error } = await supabase
+    .from('meeting_notes')
+    .select('*', { count: 'exact', head: true })
+  if (error) throw error
+  return count ?? 0
 }

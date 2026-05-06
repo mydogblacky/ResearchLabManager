@@ -2,15 +2,28 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { PhdTracker, PhdTrackerWithMember } from '@/types'
 import * as phdQueries from '@/db/phdQueries'
+import { subscribeToTables, debounce } from '@/db/realtime'
 
 export const usePhdStore = defineStore('phd', () => {
   const trackers = ref<PhdTrackerWithMember[]>([])
   const loading = ref(false)
+  let subscribed = false
+
+  const refresh = debounce(async () => {
+    trackers.value = await phdQueries.getAllPhdTrackers()
+  })
+
+  function ensureSubscribed() {
+    if (subscribed) return
+    subscribed = true
+    subscribeToTables('phd', ['phd_trackers', 'team_members'], refresh)
+  }
 
   async function loadTrackers() {
     loading.value = true
     trackers.value = await phdQueries.getAllPhdTrackers()
     loading.value = false
+    ensureSubscribed()
   }
 
   async function addTracker(tracker: Omit<PhdTracker, 'id' | 'created_at' | 'updated_at'>) {

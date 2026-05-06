@@ -2,15 +2,32 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { MeetingNote, MeetingNoteWithDetails } from '@/types'
 import * as meetingQueries from '@/db/meetingQueries'
+import { subscribeToTables, debounce } from '@/db/realtime'
 
 export const useMeetingStore = defineStore('meeting', () => {
   const notes = ref<MeetingNoteWithDetails[]>([])
   const loading = ref(false)
+  let subscribed = false
+
+  const refresh = debounce(async () => {
+    notes.value = await meetingQueries.getAllMeetingNotes()
+  })
+
+  function ensureSubscribed() {
+    if (subscribed) return
+    subscribed = true
+    subscribeToTables(
+      'meeting',
+      ['meeting_notes', 'meeting_attendees'],
+      refresh
+    )
+  }
 
   async function loadNotes() {
     loading.value = true
     notes.value = await meetingQueries.getAllMeetingNotes()
     loading.value = false
+    ensureSubscribed()
   }
 
   async function addNote(note: Omit<MeetingNote, 'id' | 'created_at' | 'updated_at'>, attendeeIds: number[]): Promise<number> {

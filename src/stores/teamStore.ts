@@ -2,20 +2,35 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { TeamMember, TeamMemberRelationship, OrgTreeNode } from '@/types'
 import * as teamQueries from '@/db/teamQueries'
+import { subscribeToTables, debounce } from '@/db/realtime'
 
 export const useTeamStore = defineStore('team', () => {
   const members = ref<TeamMember[]>([])
   const relationships = ref<TeamMemberRelationship[]>([])
   const loading = ref(false)
+  let subscribed = false
+
+  const refresh = debounce(async () => {
+    members.value = await teamQueries.getAllTeamMembers()
+    relationships.value = await teamQueries.getAllRelationships()
+  })
+
+  function ensureSubscribed() {
+    if (subscribed) return
+    subscribed = true
+    subscribeToTables('team', ['team_members', 'team_member_relationships'], refresh)
+  }
 
   async function loadMembers() {
     loading.value = true
     members.value = await teamQueries.getAllTeamMembers()
     loading.value = false
+    ensureSubscribed()
   }
 
   async function loadRelationships() {
     relationships.value = await teamQueries.getAllRelationships()
+    ensureSubscribed()
   }
 
   async function addMember(member: Omit<TeamMember, 'id' | 'created_at' | 'updated_at'>): Promise<number> {
